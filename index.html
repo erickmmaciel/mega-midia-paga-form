@@ -27,46 +27,6 @@
       max-width: 860px;
     }
 
-    /* ── Config banner ── */
-    .config-banner {
-      background: #fff8e1;
-      border: 1px solid #ffe082;
-      border-radius: 8px;
-      padding: 14px 18px;
-      margin-bottom: 32px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .config-banner label { font-size: 13px; font-weight: 600; white-space: nowrap; }
-    .config-banner input {
-      flex: 1;
-      min-width: 220px;
-      padding: 7px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: monospace;
-    }
-    .config-banner button {
-      padding: 7px 14px;
-      background: #7b68ee;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .config-banner button:hover { background: #6a5acd; }
-    .config-banner .saved-badge {
-      font-size: 12px;
-      color: #388e3c;
-      font-weight: 600;
-      display: none;
-    }
 
     /* ── Header ── */
     .header { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
@@ -190,14 +150,6 @@
 
 <div class="card">
 
-  <!-- API Key config -->
-  <div class="config-banner" id="configBanner">
-    <label>🔑 ClickUp API Key:</label>
-    <input type="password" id="apiKeyInput" placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
-    <button onclick="saveApiKey()">Salvar</button>
-    <span class="saved-badge" id="savedBadge">✓ Salvo</span>
-  </div>
-
   <!-- Header -->
   <div class="header">
     <div class="header-logo">M</div>
@@ -272,28 +224,9 @@
   const LIST_ID = '901712868823'; // Mega - Tasks
   const API_BASE = 'https://api.clickup.com/api/v2';
 
-  // ── API Key persistence ────────────────────────────────────
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  const savedBadge  = document.getElementById('savedBadge');
-
+  // ── API Key ────────────────────────────────────────────────
   const DEFAULT_KEY = 'pk_55160842_C4XWMB3HMO9BFYBM75BBLW68BVMNJ2G7';
-
-  (function loadKey() {
-    const saved = localStorage.getItem('cu_api_key') || DEFAULT_KEY;
-    if (saved) {
-      apiKeyInput.value = saved;
-      localStorage.setItem('cu_api_key', saved);
-      savedBadge.style.display = 'inline';
-    }
-  })();
-
-  function saveApiKey() {
-    const key = apiKeyInput.value.trim();
-    if (!key) { showToast('Cole sua API Key primeiro.', 'error'); return; }
-    localStorage.setItem('cu_api_key', key);
-    savedBadge.style.display = 'inline';
-    showToast('API Key salva!', 'success');
-  }
+  localStorage.setItem('cu_api_key', DEFAULT_KEY);
 
   // ── Helpers ────────────────────────────────────────────────
   function pad(n) { return String(n).padStart(2, '0'); }
