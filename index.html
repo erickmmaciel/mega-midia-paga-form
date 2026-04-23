@@ -90,6 +90,32 @@
     }
     textarea { resize: vertical; min-height: 100px; }
 
+    /* ── Link fields ── */
+    .link-group {
+      position: relative;
+    }
+    .link-group input:disabled {
+      background: #f0f0f0;
+      color: #aaa;
+      cursor: not-allowed;
+      border-color: #e0e0e0;
+    }
+    .link-error {
+      font-size: 12px;
+      color: #c62828;
+      margin-top: 4px;
+      display: none;
+    }
+    .link-error.show { display: block; }
+    .field-locked {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+      display: none;
+      font-style: italic;
+    }
+    .field-locked.show { display: block; }
+
     /* colour chips for select options */
     select option[data-color="pink"]   { background: #fce4ec; }
     select option[data-color="purple"] { background: #ede7f6; }
@@ -197,17 +223,21 @@
       </div>
 
       <!-- Drive -->
-      <div class="form-group">
-        <label for="drive">Drive</label>
-        <p class="hint">Usar para enviar imagens</p>
-        <input type="url" id="drive" placeholder="Inserir URL" />
+      <div class="form-group link-group">
+        <label for="drive">Drive <span class="req">*</span><span style="font-weight:400;color:#888;font-size:12px;"> (obrigatório um dos dois)</span></label>
+        <p class="hint">Usar para enviar imagens · apenas links do Google Drive</p>
+        <input type="url" id="drive" placeholder="https://drive.google.com/…" autocomplete="off" />
+        <span class="link-error" id="driveError">Link inválido. Use um link do Google Drive.</span>
+        <span class="field-locked" id="driveLocked">🔒 Bloqueado — Instagram já preenchido</span>
       </div>
 
       <!-- Links do Instagram -->
-      <div class="form-group full">
-        <label for="instagram">Links do Instagram</label>
-        <p class="hint">Usar para enviar Reels</p>
-        <textarea id="instagram" placeholder="Inserir texto"></textarea>
+      <div class="form-group link-group">
+        <label for="instagram">Links do Instagram <span class="req">*</span></label>
+        <p class="hint">Usar para enviar Reels · apenas links do Instagram</p>
+        <input type="url" id="instagram" placeholder="https://www.instagram.com/…" autocomplete="off" />
+        <span class="link-error" id="instagramError">Link inválido. Use um link do Instagram.</span>
+        <span class="field-locked" id="instagramLocked">🔒 Bloqueado — Drive já preenchido</span>
       </div>
 
     </div>
@@ -237,7 +267,6 @@
   }
 
   function dateToTimestamp(dateStr) {
-    // dateStr = "YYYY-MM-DD" → Unix ms at noon UTC to avoid TZ shifts
     if (!dateStr) return null;
     const [y, m, d] = dateStr.split('-').map(Number);
     return Date.UTC(y, m - 1, d, 12, 0, 0);
@@ -248,9 +277,64 @@
     if (fields.objetivo)    lines.push(`🎯 Objetivo da campanha: ${fields.objetivo}`);
     if (fields.observacoes) lines.push(`📝 Observações: ${fields.observacoes}`);
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
-    if (fields.instagram)   lines.push(`📸 Links do Instagram (Reels):\n${fields.instagram}`);
+    if (fields.instagram)   lines.push(`📸 Instagram (Reels): ${fields.instagram}`);
     return lines.join('\n\n');
   }
+
+  // ── Domain validation ──────────────────────────────────────
+  const DRIVE_PREFIX     = 'https://drive.google.com/';
+  const INSTAGRAM_PREFIX = 'https://www.instagram.com/';
+
+  function isValidDrive(url)     { return url.startsWith(DRIVE_PREFIX); }
+  function isValidInstagram(url) { return url.startsWith(INSTAGRAM_PREFIX); }
+
+  // ── Mutual lock logic ──────────────────────────────────────
+  const driveEl          = document.getElementById('drive');
+  const instagramEl      = document.getElementById('instagram');
+  const driveError       = document.getElementById('driveError');
+  const instagramError   = document.getElementById('instagramError');
+  const driveLocked      = document.getElementById('driveLocked');
+  const instagramLocked  = document.getElementById('instagramLocked');
+
+  function updateLinkFields() {
+    const driveVal = driveEl.value.trim();
+    const instaVal = instagramEl.value.trim();
+
+    // ── Mutual lock ──
+    if (driveVal) {
+      instagramEl.disabled = true;
+      instagramLocked.classList.add('show');
+      instagramError.classList.remove('show');
+    } else {
+      instagramEl.disabled = false;
+      instagramLocked.classList.remove('show');
+    }
+
+    if (instaVal) {
+      driveEl.disabled = true;
+      driveLocked.classList.add('show');
+      driveError.classList.remove('show');
+    } else {
+      driveEl.disabled = false;
+      driveLocked.classList.remove('show');
+    }
+
+    // ── Domain validation (live feedback) ──
+    if (driveVal && !isValidDrive(driveVal)) {
+      driveError.classList.add('show');
+    } else {
+      driveError.classList.remove('show');
+    }
+
+    if (instaVal && !isValidInstagram(instaVal)) {
+      instagramError.classList.add('show');
+    } else {
+      instagramError.classList.remove('show');
+    }
+  }
+
+  driveEl.addEventListener('input', updateLinkFields);
+  instagramEl.addEventListener('input', updateLinkFields);
 
   // ── Toast ──────────────────────────────────────────────────
   let toastTimer;
@@ -268,23 +352,41 @@
 
     const apiKey = (localStorage.getItem('cu_api_key') || '').trim();
     if (!apiKey) {
-      showToast('Insira e salve sua ClickUp API Key primeiro.', 'error');
+      showToast('API Key não configurada.', 'error');
       return;
     }
 
-    const projeto    = document.getElementById('projeto').value;
-    const dueDate    = document.getElementById('dueDate').value;
-    const objetivo   = document.getElementById('objetivo').value;
-    const observacoes= document.getElementById('observacoes').value.trim();
-    const drive      = document.getElementById('drive').value.trim();
-    const instagram  = document.getElementById('instagram').value.trim();
+    const projeto     = document.getElementById('projeto').value;
+    const dueDate     = document.getElementById('dueDate').value;
+    const objetivo    = document.getElementById('objetivo').value;
+    const observacoes = document.getElementById('observacoes').value.trim();
+    const drive       = driveEl.value.trim();
+    const instagram   = instagramEl.value.trim();
 
-    // Validate required
+    // ── Validação campos obrigatórios ──
     if (!dueDate)  { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
     if (!projeto)  { showToast('Selecione um Projeto.', 'error'); return; }
     if (!objetivo) { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
 
-    const taskName = `${projeto} - ${todayLabel()}`;
+    // ── Pelo menos um link obrigatório ──
+    if (!drive && !instagram) {
+      showToast('Preencha pelo menos um link (Drive ou Instagram).', 'error');
+      return;
+    }
+
+    // ── Validação de domínio ──
+    if (drive && !isValidDrive(drive)) {
+      showToast('Link do Drive inválido. Use um link do Google Drive.', 'error');
+      driveError.classList.add('show');
+      return;
+    }
+    if (instagram && !isValidInstagram(instagram)) {
+      showToast('Link do Instagram inválido. Use um link do Instagram.', 'error');
+      instagramError.classList.add('show');
+      return;
+    }
+
+    const taskName    = `${projeto} - ${todayLabel()}`;
     const description = buildDescription({ objetivo, observacoes, drive, instagram });
 
     const payload = {
@@ -309,13 +411,11 @@
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.err || `Erro ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data.err || `Erro ${res.status}`);
 
       showToast(`✅ Tarefa criada: "${data.name}"`, 'success');
       document.getElementById('megaForm').reset();
+      updateLinkFields(); // reset lock state after clear
 
     } catch (err) {
       showToast(`❌ ${err.message}`, 'error');
