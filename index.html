@@ -333,29 +333,40 @@
 
   // ── Single-link enforcement ────────────────────────────────
   function enforceSingleLink(el) {
-    // On paste: replace entire field with pasted text (no accumulation)
+    // Block space key
+    el.addEventListener('keydown', (e) => {
+      if (e.key === ' ') e.preventDefault();
+    });
+
+    // Paste: replace entire content with only first token
     el.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData)
         .getData('text')
         .trim()
-        .split(/\s+/)[0]; // take only the first token if multiple
+        .split(/\s+/)[0];
       el.value = pasted;
-      el.dispatchEvent(new Event('input'));
+      updateLinkFields();
     });
 
-    // On input: strip anything after first whitespace
+    // Drag-and-drop: same treatment
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const dropped = e.dataTransfer.getData('text').trim().split(/\s+/)[0];
+      el.value = dropped;
+      updateLinkFields();
+    });
+
+    // Input fallback: strip any whitespace that slipped through
     el.addEventListener('input', () => {
-      const first = el.value.split(/\s+/)[0];
-      if (el.value !== first) el.value = first;
+      const clean = el.value.replace(/\s+/g, '');
+      if (el.value !== clean) el.value = clean;
+      updateLinkFields();
     });
   }
 
   enforceSingleLink(driveEl);
   enforceSingleLink(instagramEl);
-
-  driveEl.addEventListener('input', updateLinkFields);
-  instagramEl.addEventListener('input', updateLinkFields);
 
   // ── Toast ──────────────────────────────────────────────────
   let toastTimer;
