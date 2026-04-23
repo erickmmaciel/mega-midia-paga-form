@@ -331,6 +331,29 @@
     }
   }
 
+  // ── Single-link enforcement ────────────────────────────────
+  function enforceSingleLink(el) {
+    // On paste: replace entire field with pasted text (no accumulation)
+    el.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData)
+        .getData('text')
+        .trim()
+        .split(/\s+/)[0]; // take only the first token if multiple
+      el.value = pasted;
+      el.dispatchEvent(new Event('input'));
+    });
+
+    // On input: strip anything after first whitespace
+    el.addEventListener('input', () => {
+      const first = el.value.split(/\s+/)[0];
+      if (el.value !== first) el.value = first;
+    });
+  }
+
+  enforceSingleLink(driveEl);
+  enforceSingleLink(instagramEl);
+
   driveEl.addEventListener('input', updateLinkFields);
   instagramEl.addEventListener('input', updateLinkFields);
 
