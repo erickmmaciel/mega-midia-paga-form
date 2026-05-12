@@ -246,6 +246,12 @@
         <span class="field-locked" id="instagramLocked">🔒 Bloqueado — Drive já preenchido</span>
       </div>
 
+      <!-- Copy (obrigatório quando Drive preenchido) -->
+      <div class="form-group full" id="copyGroup" style="display:none;">
+        <label for="copy">Copy do anúncio<span class="req">*</span></label>
+        <textarea id="copy" placeholder="Cole aqui o texto do anúncio…" style="min-height:120px;"></textarea>
+      </div>
+
     </div>
 
     <button type="submit" class="submit-btn" id="submitBtn">Enviar</button>
@@ -288,6 +294,7 @@
     if (fields.objetivo)    lines.push(`🎯 Objetivo da campanha: ${fields.objetivo}`);
     if (fields.observacoes) lines.push(`📝 Observações: ${fields.observacoes}`);
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
+    if (fields.copy)        lines.push(`✍️ Copy:\n${fields.copy}`);
     if (fields.instagram)   lines.push(`📸 Instagram (Reels): ${fields.instagram}`);
     return lines.join('\n\n');
   }
@@ -315,6 +322,8 @@
   const instagramError   = document.getElementById('instagramError');
   const driveLocked      = document.getElementById('driveLocked');
   const instagramLocked  = document.getElementById('instagramLocked');
+
+  const copyGroup = document.getElementById('copyGroup');
 
   function updateLinkFields() {
     const driveVal = driveEl.value.trim();
@@ -350,6 +359,14 @@
       instagramError.classList.add('show');
     } else {
       instagramError.classList.remove('show');
+    }
+
+    // ── Copy: show e obrigatório só quando Drive preenchido ──
+    if (driveVal) {
+      copyGroup.style.display = 'flex';
+    } else {
+      copyGroup.style.display = 'none';
+      document.getElementById('copy').value = '';
     }
   }
 
@@ -417,6 +434,7 @@
     const responsavel  = document.getElementById('responsavel').value.trim();
     const drive        = driveEl.value.trim();
     const instagram    = instagramEl.value.trim();
+    const copy         = document.getElementById('copy').value.trim();
 
     // ── Validação campos obrigatórios ──
     if (!responsavel) { showToast('Informe quem está subindo a demanda.', 'error'); return; }
@@ -428,6 +446,13 @@
     const chosenDate = new Date(dueDate + 'T12:00:00');
     if (chosenDate < minDate) {
       showToast(`Data muito próxima. Os ads precisam rodar pelo menos 7 dias.`, 'error');
+      return;
+    }
+
+    // ── Copy obrigatório quando Drive preenchido ──
+    if (drive && !copy) {
+      showToast('Preencha o copy do anúncio.', 'error');
+      document.getElementById('copy').focus();
       return;
     }
 
@@ -450,7 +475,7 @@
     }
 
     const taskName    = `${projeto} - ${todayLabel()}`;
-    const description = buildDescription({ responsavel, objetivo, observacoes, drive, instagram });
+    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram });
 
     const payload = {
       name: taskName,
