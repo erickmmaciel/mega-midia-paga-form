@@ -190,6 +190,7 @@
       <div class="form-group">
         <label for="dueDate">Quando os anúncios devem ser pausados?<span class="req">*</span></label>
         <input type="date" id="dueDate" required />
+        <span class="hint" id="dueDateHint"></span>
       </div>
 
       <!-- Projeto -->
@@ -197,12 +198,19 @@
         <label for="projeto">Projeto<span class="req">*</span></label>
         <select id="projeto" required>
           <option value="">Selecionar opção…</option>
+          <option value="GWM (Cacoal + Pvh)">GWM (Cacoal + Pvh)</option>
           <option value="GWM Cacoal">GWM Cacoal</option>
           <option value="GWM Pvh">GWM Pvh</option>
           <option value="Mega Seminovos">Mega Seminovos</option>
           <option value="Mega Ford">Mega Ford</option>
           <option value="Triumph">Triumph</option>
         </select>
+      </div>
+
+      <!-- Quem subiu a demanda -->
+      <div class="form-group">
+        <label for="responsavel">Quem subiu a demanda<span class="req">*</span></label>
+        <input type="text" id="responsavel" placeholder="Nome do responsável" required />
       </div>
 
       <!-- Objetivo da campanha -->
@@ -270,14 +278,28 @@
     return Date.UTC(y, m - 1, d, 12, 0, 0);
   }
 
+  function toYMD(date) {
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+  }
+
   function buildDescription(fields) {
     const lines = [];
+    if (fields.responsavel) lines.push(`👤 Responsável: ${fields.responsavel}`);
     if (fields.objetivo)    lines.push(`🎯 Objetivo da campanha: ${fields.objetivo}`);
     if (fields.observacoes) lines.push(`📝 Observações: ${fields.observacoes}`);
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
     if (fields.instagram)   lines.push(`📸 Instagram (Reels): ${fields.instagram}`);
     return lines.join('\n\n');
   }
+
+  // ── Prazo mínimo: hoje + 7 dias ───────────────────────────
+  const MIN_DAYS = 7;
+  const minDate  = new Date();
+  minDate.setDate(minDate.getDate() + MIN_DAYS);
+  const dueDateEl   = document.getElementById('dueDate');
+  const dueDateHint = document.getElementById('dueDateHint');
+  dueDateEl.min = toYMD(minDate);
+  dueDateHint.textContent = `Mínimo: ${pad(minDate.getDate())}/${pad(minDate.getMonth()+1)}/${minDate.getFullYear()} (ads rodam pelo menos 7 dias)`;
 
   // ── Domain validation ──────────────────────────────────────
   const DRIVE_PREFIX     = 'https://drive.google.com/';
@@ -388,17 +410,26 @@
       return;
     }
 
-    const projeto     = document.getElementById('projeto').value;
-    const dueDate     = document.getElementById('dueDate').value;
-    const objetivo    = document.getElementById('objetivo').value;
-    const observacoes = document.getElementById('observacoes').value.trim();
-    const drive       = driveEl.value.trim();
-    const instagram   = instagramEl.value.trim();
+    const projeto      = document.getElementById('projeto').value;
+    const dueDate      = document.getElementById('dueDate').value;
+    const objetivo     = document.getElementById('objetivo').value;
+    const observacoes  = document.getElementById('observacoes').value.trim();
+    const responsavel  = document.getElementById('responsavel').value.trim();
+    const drive        = driveEl.value.trim();
+    const instagram    = instagramEl.value.trim();
 
     // ── Validação campos obrigatórios ──
-    if (!dueDate)  { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
-    if (!projeto)  { showToast('Selecione um Projeto.', 'error'); return; }
-    if (!objetivo) { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
+    if (!responsavel) { showToast('Informe quem está subindo a demanda.', 'error'); return; }
+    if (!dueDate)     { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
+    if (!projeto)     { showToast('Selecione um Projeto.', 'error'); return; }
+    if (!objetivo)    { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
+
+    // ── Prazo mínimo de 7 dias ──
+    const chosenDate = new Date(dueDate + 'T12:00:00');
+    if (chosenDate < minDate) {
+      showToast(`Data muito próxima. Os ads precisam rodar pelo menos 7 dias.`, 'error');
+      return;
+    }
 
     // ── Pelo menos um link obrigatório ──
     if (!drive && !instagram) {
@@ -419,7 +450,7 @@
     }
 
     const taskName    = `${projeto} - ${todayLabel()}`;
-    const description = buildDescription({ objetivo, observacoes, drive, instagram });
+    const description = buildDescription({ responsavel, objetivo, observacoes, drive, instagram });
 
     const payload = {
       name: taskName,
