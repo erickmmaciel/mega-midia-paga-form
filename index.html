@@ -250,7 +250,8 @@
       <!-- Copy (obrigatório quando Drive preenchido) -->
       <div class="form-group full hidden" id="copyGroup">
         <label for="copy">Copy do anúncio<span class="req">*</span></label>
-        <textarea id="copy" placeholder="Cole aqui o texto do anúncio…" style="min-height:120px;"></textarea>
+        <textarea id="copy" placeholder="Cole aqui o texto do anúncio…" style="min-height:120px;" minlength="80"></textarea>
+        <span class="hint" id="copyCount" style="text-align:right;"></span>
       </div>
 
     </div>
@@ -408,6 +409,24 @@
   enforceSingleLink(driveEl);
   enforceSingleLink(instagramEl);
 
+  // ── Copy counter ───────────────────────────────────────────
+  const copyEl    = document.getElementById('copy');
+  const copyCount = document.getElementById('copyCount');
+  const MIN_COPY  = 80;
+
+  copyEl.addEventListener('input', () => {
+    const len = copyEl.value.length;
+    if (len === 0) {
+      copyCount.textContent = '';
+    } else if (len < MIN_COPY) {
+      copyCount.textContent = `${len}/${MIN_COPY} — faltam ${MIN_COPY - len} caracteres`;
+      copyCount.style.color = '#c62828';
+    } else {
+      copyCount.textContent = `${len} caracteres ✓`;
+      copyCount.style.color = '#388e3c';
+    }
+  });
+
   // ── Toast ──────────────────────────────────────────────────
   let toastTimer;
   function showToast(msg, type = '') {
@@ -453,6 +472,11 @@
     // ── Copy obrigatório quando Drive preenchido ──
     if (drive && !copy) {
       showToast('Preencha o copy do anúncio.', 'error');
+      document.getElementById('copy').focus();
+      return;
+    }
+    if (drive && copy.length < 80) {
+      showToast(`Copy muito curto. Mínimo 80 caracteres (${copy.length}/80).`, 'error');
       document.getElementById('copy').focus();
       return;
     }
