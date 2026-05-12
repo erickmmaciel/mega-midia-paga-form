@@ -89,6 +89,7 @@
       cursor: pointer;
     }
     textarea { resize: vertical; min-height: 100px; }
+    .hidden { display: none !important; }
 
     /* ── Link fields ── */
     .link-group {
@@ -247,7 +248,7 @@
       </div>
 
       <!-- Copy (obrigatório quando Drive preenchido) -->
-      <div class="form-group full" id="copyGroup" style="display:none;">
+      <div class="form-group full hidden" id="copyGroup">
         <label for="copy">Copy do anúncio<span class="req">*</span></label>
         <textarea id="copy" placeholder="Cole aqui o texto do anúncio…" style="min-height:120px;"></textarea>
       </div>
@@ -363,9 +364,9 @@
 
     // ── Copy: show e obrigatório só quando Drive preenchido ──
     if (driveVal) {
-      copyGroup.style.display = 'flex';
+      copyGroup.classList.remove('hidden');
     } else {
-      copyGroup.style.display = 'none';
+      copyGroup.classList.add('hidden');
       document.getElementById('copy').value = '';
     }
   }
