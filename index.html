@@ -418,25 +418,40 @@
 
   function blockUrlInput(el, errorId) {
     const errEl = document.getElementById(errorId);
-    el.addEventListener('input', () => {
-      if (hasUrl(el.value)) {
-        errEl.style.display = 'block';
-      } else {
-        errEl.style.display = 'none';
-      }
-    });
+
+    // Intercept paste — block entirely if contains URL
     el.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text');
       if (hasUrl(pasted)) {
         errEl.style.display = 'block';
-        return;
+        return; // discard paste
       }
-      // Insert at cursor
+      errEl.style.display = 'none';
       const start = el.selectionStart;
       const end   = el.selectionEnd;
       el.value = el.value.slice(0, start) + pasted + el.value.slice(end);
       el.dispatchEvent(new Event('input'));
+    });
+
+    // Intercept drop — block if contains URL
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const dropped = e.dataTransfer.getData('text');
+      if (hasUrl(dropped)) { errEl.style.display = 'block'; return; }
+      errEl.style.display = 'none';
+      el.value += dropped;
+      el.dispatchEvent(new Event('input'));
+    });
+
+    // On input — if URL detected, wipe field and show error
+    el.addEventListener('input', () => {
+      if (hasUrl(el.value)) {
+        el.value = '';
+        errEl.style.display = 'block';
+      } else {
+        errEl.style.display = 'none';
+      }
     });
   }
 
