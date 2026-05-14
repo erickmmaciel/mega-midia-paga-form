@@ -229,6 +229,7 @@
       <div class="form-group">
         <label for="observacoes">Observações</label>
         <input type="text" id="observacoes" placeholder="Inserir texto" />
+        <span id="obsError" style="display:none;font-size:12px;color:#c62828;">Não é permitido inserir links neste campo.</span>
       </div>
 
       <!-- Drive -->
@@ -251,6 +252,7 @@
       <div class="form-group full hidden" id="copyGroup">
         <label for="copy">Copy do anúncio<span class="req">*</span></label>
         <textarea id="copy" placeholder="Cole aqui o texto do anúncio…" style="min-height:120px;" minlength="80"></textarea>
+        <span id="copyError" style="display:none;font-size:12px;color:#c62828;">Não é permitido inserir links no copy.</span>
         <span class="hint" id="copyCount" style="text-align:right;"></span>
       </div>
 
@@ -409,6 +411,38 @@
   enforceSingleLink(driveEl);
   enforceSingleLink(instagramEl);
 
+  // ── Block URLs in text fields ─────────────────────────────
+  const URL_PATTERN = /https?:\/\/|www\.|drive\.google|instagram\.com/i;
+
+  function hasUrl(text) { return URL_PATTERN.test(text); }
+
+  function blockUrlInput(el, errorId) {
+    const errEl = document.getElementById(errorId);
+    el.addEventListener('input', () => {
+      if (hasUrl(el.value)) {
+        errEl.style.display = 'block';
+      } else {
+        errEl.style.display = 'none';
+      }
+    });
+    el.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (hasUrl(pasted)) {
+        errEl.style.display = 'block';
+        return;
+      }
+      // Insert at cursor
+      const start = el.selectionStart;
+      const end   = el.selectionEnd;
+      el.value = el.value.slice(0, start) + pasted + el.value.slice(end);
+      el.dispatchEvent(new Event('input'));
+    });
+  }
+
+  blockUrlInput(document.getElementById('observacoes'), 'obsError');
+  blockUrlInput(copyEl, 'copyError');
+
   // ── Copy counter ───────────────────────────────────────────
   const copyEl    = document.getElementById('copy');
   const copyCount = document.getElementById('copyCount');
@@ -466,6 +500,17 @@
     const chosenDate = new Date(dueDate + 'T12:00:00');
     if (chosenDate < minDate) {
       showToast(`Data muito próxima. Os ads precisam rodar pelo menos 7 dias.`, 'error');
+      return;
+    }
+
+    // ── Bloquear links em observações e copy ──
+    if (hasUrl(observacoes)) {
+      showToast('Observações não pode conter links.', 'error');
+      return;
+    }
+    if (hasUrl(copy)) {
+      showToast('Copy não pode conter links.', 'error');
+      document.getElementById('copy').focus();
       return;
     }
 
