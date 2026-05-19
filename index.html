@@ -292,6 +292,25 @@
     return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
   }
 
+  // ── Copy quality validation ────────────────────────────────
+  function isRealCopy(text) {
+    // 1. Precisa ter pelo menos 5 palavras reais (com 2+ letras)
+    const words = text.match(/[a-zA-ZÀ-ÿ]{2,}/g) || [];
+    if (words.length < 5) return false;
+
+    // 2. Nenhum caractere pode representar mais de 40% do total
+    const clean = text.replace(/\s/g, '');
+    const freq  = {};
+    for (const ch of clean) freq[ch] = (freq[ch] || 0) + 1;
+    const maxFreq = Math.max(...Object.values(freq));
+    if (maxFreq / clean.length > 0.4) return false;
+
+    // 3. Pelo menos 8 caracteres únicos
+    if (Object.keys(freq).length < 8) return false;
+
+    return true;
+  }
+
   function buildDescription(fields) {
     const lines = [];
     if (fields.responsavel) lines.push(`👤 Responsável: ${fields.responsavel}`);
@@ -537,6 +556,11 @@
     }
     if (drive && copy.length < 80) {
       showToast(`Copy muito curto. Mínimo 80 caracteres (${copy.length}/80).`, 'error');
+      document.getElementById('copy').focus();
+      return;
+    }
+    if (drive && !isRealCopy(copy)) {
+      showToast('Copy inválido. Escreva um texto real — sem repetição de caracteres.', 'error');
       document.getElementById('copy').focus();
       return;
     }
