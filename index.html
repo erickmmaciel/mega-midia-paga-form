@@ -483,11 +483,15 @@
   const MIN_COPY  = 80;
 
   copyEl.addEventListener('input', () => {
-    const len = copyEl.value.length;
+    const val = copyEl.value;
+    const len = val.length;
     if (len === 0) {
       copyCount.textContent = '';
     } else if (len < MIN_COPY) {
       copyCount.textContent = `${len}/${MIN_COPY} — faltam ${MIN_COPY - len} caracteres`;
+      copyCount.style.color = '#c62828';
+    } else if (!isRealCopy(val)) {
+      copyCount.textContent = '⚠️ Texto inválido — escreva um copy real com palavras';
       copyCount.style.color = '#c62828';
     } else {
       copyCount.textContent = `${len} caracteres ✓`;
