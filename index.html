@@ -292,6 +292,16 @@
     return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
   }
 
+  // ── Meta Ads links por projeto ────────────────────────────
+  const META_LINKS = {
+    'GWM Pvh':           'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=567738345273546&business_id=2547182735561934',
+    'GWM Cacoal':        'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=9320864484661329&business_id=2547182735561934',
+    'GWM (Cacoal + Pvh)':'GWM Cacoal: https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=9320864484661329&business_id=2547182735561934\nGWM Pvh: https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=567738345273546&business_id=2547182735561934',
+    'Mega Ford':         'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=434992292111178&business_id=2547182735561934',
+    'Mega Seminovos':    'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=3502170010043877&business_id=2547182735561934',
+    'Triumph':           'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=861939549830957&business_id=428055336131970',
+  };
+
   // ── Copy quality validation ────────────────────────────────
   function isRealCopy(text) {
     // 1. Precisa ter pelo menos 5 palavras reais (com 2+ letras)
@@ -319,6 +329,8 @@
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
     if (fields.copy)        lines.push(`✍️ Copy:\n${fields.copy}`);
     if (fields.instagram)   lines.push(`📸 Instagram (Reels): ${fields.instagram}`);
+    const metaLink = META_LINKS[fields.projeto];
+    if (metaLink) lines.push(`📊 Meta Ads:\n${metaLink}`);
     return lines.join('\n\n');
   }
 
@@ -588,7 +600,7 @@
     }
 
     const taskName    = `${projeto} - ${todayLabel()}`;
-    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram });
+    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram, projeto });
 
     const payload = {
       name: taskName,
