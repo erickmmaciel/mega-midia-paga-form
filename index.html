@@ -525,7 +525,7 @@
   document.getElementById('megaForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const apiKey = (localStorage.getItem('cu_api_key') || '').trim();
+    const apiKey = (localStorage.getItem('cu_api_key') || DEFAULT_KEY).trim();
     if (!apiKey) {
       showToast('API Key não configurada.', 'error');
       return;
