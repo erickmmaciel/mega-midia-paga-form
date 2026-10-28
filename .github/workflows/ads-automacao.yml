@@ -1,0 +1,69 @@
+name: Automação Meta Ads
+
+# Publica automaticamente as demandas do formulário (tarefas no ClickUp) nas
+# contas da Meta e mantém o painel atualizado (automacao/estado.json).
+# Roda a cada 30 min; ações manuais (publicar/pausar/ativar uma demanda) pela
+# aba Actions → "Run workflow".
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "Ação"
+        type: choice
+        options: [publicar, sincronizar, pausar, ativar]
+        default: publicar
+      task_id:
+        description: "ID da tarefa do ClickUp (obrigatório para pausar/ativar; opcional para publicar)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ads-automacao
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      CLICKUP_TOKEN: ${{ secrets.CLICKUP_TOKEN }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Testes
+        run: python3 -m unittest discover -s automacao/tests
+
+      - name: Executar
+        id: run
+        working-directory: automacao
+        run: |
+          set -o pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python3 main.py "${{ inputs.acao }}" "${{ inputs.task_id }}" | tee /tmp/out.txt
+          else
+            python3 main.py publicar | tee /tmp/out.txt
+            python3 main.py sincronizar | tee -a /tmp/out.txt
+          fi
+          if grep -q "^CHANGED" /tmp/out.txt; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Commit do estado
+        if: steps.run.outputs.changed == 'true'
+        run: |
+          git config user.name "Mega Ads Bot"
+          git config user.email "erickmmaciel@users.noreply.github.com"
+          git add automacao/estado.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(ads): atualiza estado das campanhas"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push

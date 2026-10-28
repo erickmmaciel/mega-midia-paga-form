@@ -1,0 +1,68 @@
+{
+  "graph_api_version": "v26.0",
+  "timezone_offset": "-04:00",
+  "clickup_list_id": "901712868823",
+  "publicar_tarefas_criadas_apos": "2026-10-28T14:00:00+00:00",
+  "status_inicial": "ACTIVE",
+  "prefixo_nome": "[AUTO]",
+  "objetivos": {
+    "Leads":    { "objective": "OUTCOME_LEADS",     "otimizacao": "CONVERSATIONS", "destino": "whatsapp" },
+    "Branding": { "objective": "OUTCOME_AWARENESS", "otimizacao": "REACH",         "destino": "site" },
+    "Evento":   { "objective": "OUTCOME_AWARENESS", "otimizacao": "REACH",         "destino": "site" }
+  },
+  "projetos": {
+    "GWM Pvh": {
+      "contas": [{
+        "ad_account_id": "567738345273546",
+        "page_id": "116636278003285",
+        "instagram_user_id": "17841457101277419",
+        "cidade": { "nome": "Porto Velho", "latitude": -8.7612, "longitude": -63.9004, "raio_km": 40 }
+      }],
+      "verba_total_padrao": 700,
+      "site": "https://www.facebook.com/116636278003285"
+    },
+    "GWM Cacoal": {
+      "contas": [{
+        "ad_account_id": "9320864484661329",
+        "page_id": "116636278003285",
+        "instagram_user_id": "17841457101277419",
+        "cidade": { "nome": "Cacoal", "latitude": -11.4386, "longitude": -61.4472, "raio_km": 40 }
+      }],
+      "verba_total_padrao": 700,
+      "site": "https://www.facebook.com/116636278003285"
+    },
+    "GWM (Cacoal + Pvh)": {
+      "usar_projetos": ["GWM Cacoal", "GWM Pvh"]
+    },
+    "Mega Ford": {
+      "contas": [{
+        "ad_account_id": "434992292111178",
+        "page_id": "1387089238190178",
+        "instagram_user_id": null,
+        "cidade": { "nome": "Porto Velho", "latitude": -8.7612, "longitude": -63.9004, "raio_km": 40 }
+      }],
+      "verba_total_padrao": 700,
+      "site": "https://www.facebook.com/1387089238190178"
+    },
+    "Mega Seminovos": {
+      "contas": [{
+        "ad_account_id": "3502170010043877",
+        "page_id": "130805786787174",
+        "instagram_user_id": "17841448354205935",
+        "cidade": { "nome": "Porto Velho", "latitude": -8.7612, "longitude": -63.9004, "raio_km": 40 }
+      }],
+      "verba_total_padrao": 700,
+      "site": "https://www.facebook.com/130805786787174"
+    },
+    "Triumph": {
+      "contas": [{
+        "ad_account_id": "861939549830957",
+        "page_id": "1080266011831088",
+        "instagram_user_id": "17841476083729306",
+        "cidade": { "nome": "Porto Velho", "latitude": -8.7612, "longitude": -63.9004, "raio_km": 40 }
+      }],
+      "verba_total_padrao": 700,
+      "site": "https://www.facebook.com/1080266011831088"
+    }
+  }
+}

@@ -225,6 +225,13 @@
         </select>
       </div>
 
+      <!-- Verba -->
+      <div class="form-group">
+        <label for="verba">Verba total da campanha (R$)</label>
+        <input type="text" id="verba" inputmode="decimal" placeholder="Ex.: 1.500,00" />
+        <span class="hint">Em branco usa a verba padrão do projeto.</span>
+      </div>
+
       <!-- Observações -->
       <div class="form-group">
         <label for="observacoes">Observações</label>
@@ -329,6 +336,7 @@
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
     if (fields.copy)        lines.push(`✍️ Copy:\n${fields.copy}`);
     if (fields.instagram)   lines.push(`📸 Instagram (Reels): ${fields.instagram}`);
+    if (fields.verba)       lines.push(`💰 Verba total: R$ ${fields.verba}`);
     const metaLink = META_LINKS[fields.projeto];
     if (metaLink) lines.push(`📊 Meta Ads:\n${metaLink}`);
     return lines.join('\n\n');
@@ -539,6 +547,7 @@
     const drive        = driveEl.value.trim();
     const instagram    = instagramEl.value.trim();
     const copy         = document.getElementById('copy').value.trim();
+    const verba        = document.getElementById('verba').value.trim();
 
     // ── Validação campos obrigatórios ──
     if (!responsavel) { showToast('Informe quem está subindo a demanda.', 'error'); return; }
@@ -581,6 +590,13 @@
       return;
     }
 
+    // ── Verba: número positivo (aceita 1.500,00 ou 1500.00) ──
+    if (verba && !/^\d{1,3}(\.?\d{3})*(,\d{1,2})?$|^\d+(\.\d{1,2})?$/.test(verba)) {
+      showToast('Verba inválida. Use só números, ex.: 1.500,00', 'error');
+      document.getElementById('verba').focus();
+      return;
+    }
+
     // ── Pelo menos um link obrigatório ──
     if (!drive && !instagram) {
       showToast('Preencha pelo menos um link (Drive ou Instagram).', 'error');
@@ -600,7 +616,7 @@
     }
 
     const taskName    = `${projeto} - ${todayLabel()}`;
-    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram, projeto });
+    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram, projeto, verba });
 
     const payload = {
       name: taskName,
