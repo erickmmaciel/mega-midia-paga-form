@@ -6,11 +6,12 @@ e dá controle centralizado pelo painel (`/painel/`).
 ## Fluxo
 
 1. Formulário (`/index.html`) cria a tarefa no ClickUp (lista Mega - Tasks).
-2. GitHub Actions roda a cada 30 min (`.github/workflows/ads-automacao.yml`):
+2. O servidor (`automacao/servidor.py`) roda a cada 5 min:
    - `publicar`: lê tarefas novas, cria campanha + conjunto + anúncios na conta do projeto.
    - `sincronizar`: atualiza status e métricas, pausa o que passou da data.
-3. Resultado vai como comentário na tarefa do ClickUp e em `automacao/estado.json`.
-4. Painel lê o `estado.json`: status, investimento, alcance, conversas, links.
+3. Resultado vai como comentário na tarefa do ClickUp e no estado (`dados/estado.json`).
+4. Painel em `https://<seu-servidor>/painel/` (com senha): status, verba do mês, investimento,
+   conversas e botões de pausar, ativar, reprocessar e sincronizar.
 
 ## O que é criado por demanda
 
@@ -26,15 +27,35 @@ e dá controle centralizado pelo painel (`/painel/`).
 Público: raio de 40 km da cidade, 18-65, Advantage+ público, posicionamentos automáticos.
 Nome: `[AUTO] <projeto> | <objetivo> | até dd/mm | #<id da tarefa>`.
 
-## Configuração (uma vez)
+## Instalação no servidor
 
-Secrets em Settings → Secrets and variables → Actions:
+Requisitos: Linux com Docker (ou Python 3.10+ sem dependências extras).
 
-| Secret | Como obter |
+```bash
+git clone https://github.com/erickmmaciel/mega-midia-paga-form.git /opt/mega-midia-paga-form
+cd /opt/mega-midia-paga-form
+cp .env.example .env   # preencher os tokens e a senha do painel
+docker compose up -d --build
+```
+
+- Logs: `docker compose logs -f`
+- Atualizar: `git pull && docker compose up -d --build`
+- Sem Docker: `deploy/mega-ads.service` (systemd).
+- HTTPS: o painel escuta só em `127.0.0.1:8080`. Publique com o proxy que o servidor já usa
+  (Nginx, Caddy etc.). Exemplo pronto em `deploy/Caddyfile`. Não exponha sem HTTPS: a senha
+  trafegaria aberta.
+- Monitoramento: `GET /saude` (sem senha) mostra a última rodada e se houve erro.
+- Backup: basta copiar `dados/estado.json`.
+
+## Variáveis do `.env`
+
+| Variável | Como obter |
 |---|---|
 | `META_ACCESS_TOKEN` | Business Manager → Usuários do sistema → gerar token com `ads_management`, `ads_read`, `business_management`, `pages_read_engagement`, `instagram_basic`. Dar acesso ao usuário do sistema nas contas e páginas dos projetos |
 | `CLICKUP_TOKEN` | ClickUp → Settings → Apps → API Token |
 | `GOOGLE_API_KEY` | Google Cloud → APIs → ativar Drive API → criar chave de API. Pastas do Drive precisam estar como "qualquer pessoa com o link" |
+| `PAINEL_USUARIO` / `PAINEL_SENHA` | Login do painel |
+| `INTERVALO_MIN` | Minutos entre rodadas (padrão 5) |
 
 Sem `META_ACCESS_TOKEN` tudo roda em simulação (nada é publicado).
 
@@ -42,17 +63,14 @@ Sem `META_ACCESS_TOKEN` tudo roda em simulação (nada é publicado).
 
 - Só publica tarefas criadas depois de `publicar_tarefas_criadas_apos` (config.json). Demandas antigas não são duplicadas.
 - Cada tarefa é publicada uma vez. Se falhar no meio, a campanha incompleta é apagada e o erro aparece no ClickUp e no painel.
+- Uma execução por vez: rodada agendada e botões do painel nunca rodam em paralelo.
 - `status_inicial`: `ACTIVE` publica direto. Troque para `PAUSED` se quiser revisar antes de ativar.
 
 ## Controle manual
 
-Actions → "Automação Meta Ads" → Run workflow:
-
-- `publicar` + ID da tarefa: reprocessa uma demanda com erro.
-- `pausar` / `ativar` + ID da tarefa: pausa/reativa todas as campanhas da demanda.
-- `sincronizar`: atualiza o painel na hora.
-
-Pelo painel, o botão de cada campanha copia o ID e abre essa tela.
+- Pelo painel: botões em cada demanda (pausar, ativar, reprocessar) e "Sincronizar agora".
+- Pela linha de comando no servidor:
+  `docker compose exec mega-ads python3 automacao/main.py pausar <id da tarefa>`
 
 ## Ajustes comuns (config.json)
 

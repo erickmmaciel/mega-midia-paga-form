@@ -7,7 +7,8 @@ Comandos:
   pausar <task_id>       pausa todas as campanhas da demanda
   ativar <task_id>       reativa todas as campanhas da demanda
 
-Variáveis de ambiente: META_ACCESS_TOKEN, CLICKUP_TOKEN, GOOGLE_API_KEY.
+Variáveis de ambiente: META_ACCESS_TOKEN, CLICKUP_TOKEN, GOOGLE_API_KEY e
+ESTADO_PATH (opcional, padrão automacao/estado.json).
 Sem META_ACCESS_TOKEN roda em modo simulação (DRY RUN): planeja e não publica nada.
 Imprime "CHANGED" quando o estado.json foi alterado.
 """
@@ -26,7 +27,12 @@ from meta_api import MetaApi
 
 DIR = pathlib.Path(__file__).resolve().parent
 CONFIG = DIR / "config.json"
-ESTADO = DIR / "estado.json"
+ESTADO = pathlib.Path(os.environ.get("ESTADO_PATH") or DIR / "estado.json")
+COMANDOS = ("publicar", "sincronizar", "pausar", "ativar")
+
+
+class ErroComando(Exception):
+    pass
 
 
 def agora_iso():
@@ -37,10 +43,19 @@ def carregar(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def carregar_estado():
+    if not ESTADO.exists():
+        return {"campanhas": {}, "atualizado_em": None}
+    return carregar(ESTADO)
+
+
 def salvar_estado(estado, config):
     estado["atualizado_em"] = agora_iso()
     estado["verba_mes"] = planejador.resumo_verba_mes(config, estado)
-    ESTADO.write_text(json.dumps(estado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    ESTADO.parent.mkdir(parents=True, exist_ok=True)
+    tmp = ESTADO.with_suffix(".tmp")
+    tmp.write_text(json.dumps(estado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(ESTADO)  # escrita atômica: o painel nunca lê arquivo pela metade
     print("CHANGED")
 
 
@@ -216,7 +231,7 @@ def sincronizar(estado, meta):
 def alterar_status(estado, meta, clickup, task_id, novo):
     registro = estado["campanhas"].get(task_id)
     if not registro or not registro.get("contas"):
-        raise SystemExit(f"Tarefa {task_id} não tem campanhas publicadas")
+        raise ErroComando(f"Tarefa {task_id} não tem campanhas publicadas")
     for conta in registro["contas"]:
         meta.definir_status(conta["campanha_id"], novo)
         conta["status_meta"] = novo
@@ -229,12 +244,11 @@ def alterar_status(estado, meta, clickup, task_id, novo):
     return True
 
 
-def main(argv):
-    if not argv or argv[0] not in ("publicar", "sincronizar", "pausar", "ativar"):
-        print(__doc__)
-        return 2
-    cmd, alvo = argv[0], (argv[1].strip() if len(argv) > 1 and argv[1].strip() else None)
-    config, estado = carregar(CONFIG), carregar(ESTADO)
+def executar(cmd, alvo=None):
+    """Roda um comando. Usado pela linha de comando e pelo servidor."""
+    if cmd not in COMANDOS:
+        raise ErroComando(f"Comando inválido: {cmd}")
+    config, estado = carregar(CONFIG), carregar_estado()
 
     token = os.environ.get("META_ACCESS_TOKEN")
     dry_run = not token
@@ -248,19 +262,32 @@ def main(argv):
 
     if cmd == "publicar":
         if not clickup:
-            raise SystemExit("CLICKUP_TOKEN é obrigatório para ler as demandas")
+            raise ErroComando("CLICKUP_TOKEN é obrigatório para ler as demandas")
         mudou = publicar(config, estado, meta, clickup, drive, alvo, dry_run)
     elif dry_run:
-        return 0
+        return False
     elif cmd == "sincronizar":
         mudou = sincronizar(estado, meta)
     else:
         if not alvo:
-            raise SystemExit(f"Informe o ID da tarefa do ClickUp para {cmd}")
+            raise ErroComando(f"Informe o ID da tarefa do ClickUp para {cmd}")
         mudou = alterar_status(estado, meta, clickup, alvo,
                                "PAUSED" if cmd == "pausar" else "ACTIVE")
     if mudou:
         salvar_estado(estado, config)
+    return mudou
+
+
+def main(argv):
+    if not argv or argv[0] not in COMANDOS:
+        print(__doc__)
+        return 2
+    alvo = argv[1].strip() if len(argv) > 1 and argv[1].strip() else None
+    try:
+        executar(argv[0], alvo)
+    except ErroComando as exc:
+        print(f"Erro: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 

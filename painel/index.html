@@ -88,6 +88,8 @@
     }
     .btn.primary { background: #7b68ee; border-color: #7b68ee; color: #fff; }
     .btn:hover { border-color: #7b68ee; }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    #btnSync { margin-left: 8px; padding: 4px 10px; font-size: 12px; }
     .empty { text-align: center; color: #888; padding: 48px 16px; }
 
     #toast {
@@ -114,8 +116,9 @@
     <h1>Mega - Painel de Ads</h1>
   </div>
   <p class="sub">
-    Campanhas publicadas automaticamente a partir do <a href="../">formulário</a>.
+    Campanhas publicadas automaticamente a partir do formulário.
     <span id="atualizado"></span>
+    <button class="btn" id="btnSync" hidden>↻ Sincronizar agora</button>
   </p>
 
   <div class="kpis">
@@ -147,8 +150,8 @@
 <div id="toast"></div>
 
 <script>
-  const ESTADO_URL = '../automacao/estado.json';
-  const ACTIONS_URL = 'https://github.com/erickmmaciel/mega-midia-paga-form/actions/workflows/ads-automacao.yml';
+  const ESTADO_URL = '/api/estado';
+  const ACAO_URL = '/api/acao';
 
   const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const int = v => v.toLocaleString('pt-BR');
@@ -258,29 +261,57 @@
       : '<div class="empty">Nenhuma campanha encontrada.</div>';
   }
 
-  // Ações rodam no GitHub Actions (onde ficam os tokens): copia o ID e abre o "Run workflow".
-  document.getElementById('lista').addEventListener('click', async e => {
+  // Ações rodam no servidor, onde ficam os tokens da Meta e do ClickUp.
+  async function executar(acao, taskId, btn) {
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Executando…';
+    try {
+      const res = await fetch(ACAO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao, task_id: taskId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.erro || (data.saida || '').split('\n').pop() || `Erro ${res.status}`);
+      showToast('✅ Feito.');
+      await carregar();
+    } catch (err) {
+      showToast(`❌ ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  }
+
+  document.getElementById('lista').addEventListener('click', e => {
     const btn = e.target.closest('[data-acao]');
     if (!btn) return;
-    try { await navigator.clipboard.writeText(btn.dataset.task); } catch (_) {}
-    showToast(`ID ${btn.dataset.task} copiado. Em "Run workflow" escolha "${btn.dataset.acao}" e cole o ID.`);
-    window.open(ACTIONS_URL, '_blank', 'noopener');
+    const acao = btn.dataset.acao;
+    if (acao === 'pausar' && !confirm('Pausar todas as campanhas desta demanda?')) return;
+    executar(acao, btn.dataset.task, btn);
   });
+  document.getElementById('btnSync').addEventListener('click', e => executar('sincronizar', '', e.currentTarget));
 
   ['fProjeto', 'fStatus'].forEach(id => document.getElementById(id).addEventListener('change', render));
   document.getElementById('fBusca').addEventListener('input', render);
 
-  fetch(`${ESTADO_URL}?t=${Date.now()}`)
+  function carregar() {
+   return fetch(`${ESTADO_URL}?t=${Date.now()}`)
     .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(estado => {
+      document.getElementById('btnSync').hidden = false;
       registros = Object.values(estado.campanhas || {})
         .sort((a, b) => (b.processado_em || '').localeCompare(a.processado_em || ''));
       if (estado.atualizado_em) {
         document.getElementById('atualizado').textContent = `Atualizado em ${fmtData(estado.atualizado_em)}.`;
       }
       const projetos = [...new Set(registros.map(r => r.projeto))].sort();
-      document.getElementById('fProjeto').insertAdjacentHTML('beforeend',
-        projetos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join(''));
+      const sel = document.getElementById('fProjeto');
+      const escolhido = sel.value;
+      sel.innerHTML = '<option value="">Todos os projetos</option>' +
+        projetos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+      sel.value = escolhido;
       renderVerbas(estado.verba_mes);
       renderKpis();
       render();
@@ -288,6 +319,10 @@
     .catch(() => {
       document.getElementById('lista').innerHTML = '<div class="empty">Não foi possível carregar o estado das campanhas.</div>';
     });
+  }
+
+  carregar();
+  setInterval(carregar, 60000);
 </script>
 </body>
 </html>

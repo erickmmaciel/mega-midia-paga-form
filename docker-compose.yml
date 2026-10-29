@@ -1,0 +1,9 @@
+services:
+  mega-ads:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"   # exposto só localmente: publique via proxy com HTTPS (ver README)
+    volumes:
+      - ./dados:/data

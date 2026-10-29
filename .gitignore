@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+.env
+dados/
+automacao/estado.json
+automacao/estado.tmp

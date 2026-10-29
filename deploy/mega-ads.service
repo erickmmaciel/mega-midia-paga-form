@@ -1,0 +1,20 @@
+# Alternativa ao Docker. Instalar:
+#   sudo cp deploy/mega-ads.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now mega-ads
+[Unit]
+Description=Mega Ads - automação Meta Ads
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/mega-midia-paga-form
+EnvironmentFile=/opt/mega-midia-paga-form/.env
+Environment=ESTADO_PATH=/opt/mega-midia-paga-form/dados/estado.json
+Environment=TZ=America/Porto_Velho
+ExecStart=/usr/bin/python3 automacao/servidor.py
+Restart=always
+RestartSec=10
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
