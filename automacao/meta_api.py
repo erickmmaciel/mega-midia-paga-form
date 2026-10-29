@@ -55,7 +55,8 @@ class MetaApi:
                          is_adset_budget_sharing_enabled="false")["id"]
 
     def criar_conjunto(self, act, campanha_id, nome, otimizacao, destino,
-                       verba_centavos, inicio, fim, targeting, page_id, status):
+                       verba_centavos, inicio, fim, targeting, page_id, status,
+                       whatsapp=None):
         payload = dict(
             name=nome, campaign_id=campanha_id, status=status,
             lifetime_budget=verba_centavos, start_time=inicio, end_time=fim,
@@ -65,6 +66,8 @@ class MetaApi:
         )
         if destino == "whatsapp":
             payload["destination_type"] = "WHATSAPP"
+            if whatsapp:
+                payload["promoted_object"]["whatsapp_phone_number"] = whatsapp
         elif destino == "formulario":
             payload["destination_type"] = "ON_AD"
         return self.post(f"act_{act}/adsets", **payload)["id"]

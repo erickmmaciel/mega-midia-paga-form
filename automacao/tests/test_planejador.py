@@ -90,6 +90,23 @@ class TestPlano(unittest.TestCase):
         with self.assertRaises(planejador.DemandaInvalida):
             planejador.planejar(CONFIG, d, agora=AGORA)
 
+    def test_teto_verba_mensal(self):
+        d = planejador.demanda_da_tarefa(tarefa(nome="Mega Seminovos - 01/11/2026"))
+        d["verba_total"] = 1500
+        estado = {"campanhas": {"x": {"processado_em": "2026-11-01T10:00:00+00:00", "contas": [
+            {"ad_account_id": "3502170010043877", "verba_centavos": 300000}]}}}
+        with self.assertRaises(planejador.DemandaInvalida):  # 3000 + 1500 > 4000
+            planejador.planejar(CONFIG, d, agora=AGORA, estado=estado)
+        d["verba_total"] = 1000
+        self.assertEqual(len(planejador.planejar(CONFIG, d, agora=AGORA, estado=estado)), 1)
+        # mês anterior não conta
+        estado["campanhas"]["x"]["processado_em"] = "2026-10-20T10:00:00+00:00"
+        d["verba_total"] = 4000
+        self.assertEqual(len(planejador.planejar(CONFIG, d, agora=AGORA, estado=estado)), 1)
+        resumo = planejador.resumo_verba_mes(CONFIG, estado, agora=AGORA)
+        self.assertEqual(resumo["Mega Seminovos"]["verba_mensal"], 4000)
+        self.assertNotIn("GWM (Cacoal + Pvh)", resumo)
+
     def test_criativos(self):
         conta = planejador.contas_do_projeto(CONFIG, "Mega Seminovos")[0]
         img = planejador.spec_criativo("imagem", conta, "whatsapp", "Texto", {"hash": "h1"})

@@ -138,7 +138,39 @@ def periodo(data_fim, offset, agora=None):
     return inicio.replace(microsecond=0).isoformat(), fim.isoformat()
 
 
-def planejar(config, demanda, agora=None):
+def mes_atual(agora=None):
+    return (agora or dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m")
+
+
+def verba_alocada_no_mes(estado, ad_account_id, mes):
+    """Soma (em R$) das verbas das campanhas publicadas na conta no mês informado."""
+    total = 0
+    for reg in (estado or {}).get("campanhas", {}).values():
+        if (reg.get("processado_em") or "")[:7] != mes:
+            continue
+        for c in reg.get("contas", []):
+            if c["ad_account_id"] == ad_account_id:
+                total += c["verba_centavos"] / 100
+    return total
+
+
+def resumo_verba_mes(config, estado, agora=None):
+    mes, saida = mes_atual(agora), {}
+    for nome, proj in config["projetos"].items():
+        if "verba_mensal" not in proj:
+            continue
+        act = proj["contas"][0]["ad_account_id"]
+        gasto = sum((c.get("metricas") or {}).get("gasto", 0)
+                    for reg in estado.get("campanhas", {}).values()
+                    if (reg.get("processado_em") or "")[:7] == mes
+                    for c in reg.get("contas", []) if c["ad_account_id"] == act)
+        saida[nome] = {"mes": mes, "verba_mensal": proj["verba_mensal"],
+                       "alocado": round(verba_alocada_no_mes(estado, act, mes), 2),
+                       "gasto": round(gasto, 2)}
+    return saida
+
+
+def planejar(config, demanda, agora=None, estado=None):
     obj = config["objetivos"].get(demanda["objetivo"])
     if not obj:
         raise DemandaInvalida(f"Objetivo '{demanda['objetivo']}' sem mapeamento no config.json")
@@ -153,6 +185,17 @@ def planejar(config, demanda, agora=None):
     inicio, fim = periodo(demanda["data_fim"], config["timezone_offset"], agora)
     verba_total = demanda["verba_total"] or sum(c["verba_total_padrao"] for c in contas)
     data_nome = dt.date.fromisoformat(demanda["data_fim"]).strftime("%d/%m")
+    mes = mes_atual(agora)
+    for conta in contas:
+        teto = config["projetos"][conta["projeto"]].get("verba_mensal")
+        if teto is None:
+            continue
+        alocado = verba_alocada_no_mes(estado, conta["ad_account_id"], mes)
+        nova = verba_total / len(contas)
+        if alocado + nova > teto:
+            raise DemandaInvalida(
+                f"Verba mensal de {conta['projeto']} estourada: R$ {alocado:,.2f} já alocados "
+                f"+ R$ {nova:,.2f} desta demanda > teto de R$ {teto:,.2f}")
     planos = []
     for conta in contas:
         nome = (f"{config['prefixo_nome']} {conta['projeto']} | {demanda['objetivo']} | "

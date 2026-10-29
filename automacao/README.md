@@ -58,7 +58,8 @@ Pelo painel, o botão de cada campanha copia o ID e abre essa tela.
 
 - Novo projeto: adicionar em `projetos` (conta, página, Instagram, cidade) e a opção no `<select id="projeto">` do formulário.
 - Leads por formulário instantâneo em vez de WhatsApp: em `objetivos.Leads` usar `"destino": "formulario"`, `"otimizacao": "LEAD_GENERATION"` e colocar `lead_form_id` na conta. A página Triumph ainda não aceitou os termos de Lead Ads.
-- Mega Ford: `instagram_user_id` vazio é descoberto pela página na hora da publicação.
+- Verba mensal: `verba_mensal` por projeto é o teto do mês. Demanda que estoura o teto não é publicada e o erro aparece no ClickUp e no painel.
+- WhatsApp: `whatsapp` em cada conta define o número dos anúncios de Leads. O número precisa estar conectado à página no Business Manager.
 
 ## Testes
 

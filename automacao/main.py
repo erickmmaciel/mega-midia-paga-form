@@ -37,8 +37,9 @@ def carregar(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def salvar_estado(estado):
+def salvar_estado(estado, config):
     estado["atualizado_em"] = agora_iso()
+    estado["verba_mes"] = planejador.resumo_verba_mes(config, estado)
     ESTADO.write_text(json.dumps(estado, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("CHANGED")
 
@@ -94,7 +95,7 @@ def publicar_plano(meta, drive, plano, demanda, status):
         conjunto_id = meta.criar_conjunto(
             act, campanha_id, plano["nome"], plano["otimizacao"], plano["destino"],
             plano["verba_centavos"], plano["inicio"], plano["fim"], plano["targeting"],
-            conta["page_id"], status)
+            conta["page_id"], status, conta.get("whatsapp"))
         anuncios = []
         for tipo, nome, midia in preparar_midias(meta, drive, plano, demanda):
             spec = planejador.spec_criativo(tipo, conta, plano["destino"], demanda["copy"], midia)
@@ -142,7 +143,7 @@ def publicar(config, estado, meta, clickup, drive, so_task=None, dry_run=False):
         feitas = (atual or {}).get("contas", [])
         registro = {**demanda, "processado_em": agora_iso(), "contas": list(feitas)}
         try:
-            planos = planejador.planejar(config, demanda)
+            planos = planejador.planejar(config, demanda, estado=estado)
             if dry_run:
                 print(f"DRY RUN {demanda['task_id']} {demanda['projeto']}:")
                 print(json.dumps(planos, ensure_ascii=False, indent=2))
@@ -259,7 +260,7 @@ def main(argv):
         mudou = alterar_status(estado, meta, clickup, alvo,
                                "PAUSED" if cmd == "pausar" else "ACTIVE")
     if mudou:
-        salvar_estado(estado)
+        salvar_estado(estado, config)
     return 0
 
 
