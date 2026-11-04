@@ -553,7 +553,9 @@
     if (!dueDate)     { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
     if (!projeto)     { showToast('Selecione um Projeto.', 'error'); return; }
     if (!objetivo)    { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
-    if (!veiculo)     { showToast('Informe o veículo ou categoria do anúncio.', 'error'); return; }
+    if (!veiculo || veiculo.length < 3 || (veiculo.match(/[a-zA-ZÀ-ÿ]/g) || []).length < 2) {
+      showToast('Informe o veículo ou categoria (mín. 3 caracteres com pelo menos 2 letras).', 'error'); return;
+    }
 
     // ── Prazo mínimo de 7 dias ──
     const chosenDate = new Date(dueDate + 'T12:00:00');
