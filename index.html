@@ -500,8 +500,12 @@
   // ── Validação inline Veículo ───────────────────────────────
   const veiculoEl    = document.getElementById('veiculo');
   const veiculoError = document.getElementById('veiculoError');
+  const VEICULO_BLOCKLIST = /^((.)\2{2,}|abc+d*|abcd|asdf|qwerty|teste?|lore?m|foo|bar|baz|xxx+|yyy+|zzz+|aaa+|bbb+|ccc+|ddd+|eee+|sss+|nnn+|mmm+|rrr+)$/i;
   function isValidVeiculo(v) {
-    return v.length >= 3 && (v.match(/[a-zA-ZÀ-ÿ]/g) || []).length >= 2;
+    if (v.length < 3) return false;
+    if ((v.match(/[a-zA-ZÀ-ÿ]/g) || []).length < 2) return false;
+    if (VEICULO_BLOCKLIST.test(v)) return false;
+    return true;
   }
   veiculoEl.addEventListener('input', () => {
     const v = veiculoEl.value.trim();
