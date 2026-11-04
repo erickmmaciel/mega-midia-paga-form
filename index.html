@@ -229,6 +229,7 @@
       <div class="form-group full">
         <label for="veiculo">Veículo / Modelo<span class="req">*</span></label>
         <input type="text" id="veiculo" placeholder="Ex: GWM Haval H6, SUV, Caminhonete, Geral…" required />
+        <span id="veiculoError" style="display:none;font-size:12px;color:#c62828;">Digite pelo menos 3 caracteres com 2 letras (ex: SUV, Geral, Caminhonete).</span>
       </div>
 
       <!-- Observações -->
@@ -496,6 +497,21 @@
   blockUrlInput(document.getElementById('observacoes'), 'obsError');
   blockUrlInput(document.getElementById('copy'), 'copyError');
 
+  // ── Validação inline Veículo ───────────────────────────────
+  const veiculoEl    = document.getElementById('veiculo');
+  const veiculoError = document.getElementById('veiculoError');
+  function isValidVeiculo(v) {
+    return v.length >= 3 && (v.match(/[a-zA-ZÀ-ÿ]/g) || []).length >= 2;
+  }
+  veiculoEl.addEventListener('input', () => {
+    const v = veiculoEl.value.trim();
+    veiculoError.style.display = (v && !isValidVeiculo(v)) ? 'block' : 'none';
+  });
+  veiculoEl.addEventListener('blur', () => {
+    const v = veiculoEl.value.trim();
+    veiculoError.style.display = (!v || !isValidVeiculo(v)) ? 'block' : 'none';
+  });
+
   // ── Copy counter ───────────────────────────────────────────
   const copyEl    = document.getElementById('copy');
   const copyCount = document.getElementById('copyCount');
@@ -553,9 +569,12 @@
     if (!dueDate)     { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
     if (!projeto)     { showToast('Selecione um Projeto.', 'error'); return; }
     if (!objetivo)    { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
-    if (!veiculo || veiculo.length < 3 || (veiculo.match(/[a-zA-ZÀ-ÿ]/g) || []).length < 2) {
-      showToast('Informe o veículo ou categoria (mín. 3 caracteres com pelo menos 2 letras).', 'error'); return;
+    if (!veiculo || !isValidVeiculo(veiculo)) {
+      veiculoError.style.display = 'block';
+      veiculoEl.focus();
+      showToast('Veículo / Modelo inválido.', 'error'); return;
     }
+    veiculoError.style.display = 'none';
 
     // ── Prazo mínimo de 7 dias ──
     const chosenDate = new Date(dueDate + 'T12:00:00');
