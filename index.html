@@ -225,6 +225,12 @@
         </select>
       </div>
 
+      <!-- Veículo / Modelo -->
+      <div class="form-group full">
+        <label for="veiculo">Veículo / Modelo<span class="req">*</span></label>
+        <input type="text" id="veiculo" placeholder="Ex: GWM Haval H6, SUV, Caminhonete, Geral…" required />
+      </div>
+
       <!-- Observações -->
       <div class="form-group">
         <label for="observacoes">Observações</label>
@@ -324,6 +330,7 @@
   function buildDescription(fields) {
     const lines = [];
     if (fields.responsavel) lines.push(`👤 Responsável: ${fields.responsavel}`);
+    if (fields.veiculo)     lines.push(`🚗 Veículo / Modelo: ${fields.veiculo}`);
     if (fields.objetivo)    lines.push(`🎯 Objetivo da campanha: ${fields.objetivo}`);
     if (fields.observacoes) lines.push(`📝 Observações: ${fields.observacoes}`);
     if (fields.drive)       lines.push(`📁 Drive (imagens): ${fields.drive}`);
@@ -534,6 +541,7 @@
     const projeto      = document.getElementById('projeto').value;
     const dueDate      = document.getElementById('dueDate').value;
     const objetivo     = document.getElementById('objetivo').value;
+    const veiculo      = document.getElementById('veiculo').value.trim();
     const observacoes  = document.getElementById('observacoes').value.trim();
     const responsavel  = document.getElementById('responsavel').value.trim();
     const drive        = driveEl.value.trim();
@@ -545,6 +553,7 @@
     if (!dueDate)     { showToast('Informe a data de pausar os anúncios.', 'error'); return; }
     if (!projeto)     { showToast('Selecione um Projeto.', 'error'); return; }
     if (!objetivo)    { showToast('Selecione o Objetivo da campanha.', 'error'); return; }
+    if (!veiculo)     { showToast('Informe o veículo ou categoria do anúncio.', 'error'); return; }
 
     // ── Prazo mínimo de 7 dias ──
     const chosenDate = new Date(dueDate + 'T12:00:00');
@@ -600,7 +609,7 @@
     }
 
     const taskName    = `${projeto} - ${todayLabel()}`;
-    const description = buildDescription({ responsavel, objetivo, observacoes, drive, copy, instagram, projeto });
+    const description = buildDescription({ responsavel, veiculo, objetivo, observacoes, drive, copy, instagram, projeto });
 
     const payload = {
       name: taskName,
