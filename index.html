@@ -343,14 +343,11 @@
     return lines.join('\n\n');
   }
 
-  // ── Prazo mínimo: hoje + 7 dias ───────────────────────────
-  const MIN_DAYS = 7;
-  const minDate  = new Date();
-  minDate.setDate(minDate.getDate() + MIN_DAYS);
   const dueDateEl   = document.getElementById('dueDate');
   const dueDateHint = document.getElementById('dueDateHint');
+  const minDate     = new Date();
   dueDateEl.min = toYMD(minDate);
-  dueDateHint.textContent = `Mínimo: ${pad(minDate.getDate())}/${pad(minDate.getMonth()+1)}/${minDate.getFullYear()} (ads rodam pelo menos 7 dias)`;
+  dueDateHint.textContent = '';
 
   // ── Domain validation ──────────────────────────────────────
   const DRIVE_PREFIX     = 'https://drive.google.com/';
@@ -581,12 +578,6 @@
     }
     veiculoError.style.display = 'none';
 
-    // ── Prazo mínimo de 7 dias ──
-    const chosenDate = new Date(dueDate + 'T12:00:00');
-    if (chosenDate < minDate) {
-      showToast(`Data muito próxima. Os ads precisam rodar pelo menos 7 dias.`, 'error');
-      return;
-    }
 
     // ── Bloquear links em observações e copy ──
     if (hasUrl(observacoes)) {
